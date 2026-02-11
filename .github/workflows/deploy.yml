@@ -37,6 +37,8 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
+        script_stop: false
+        request_pty: true
         script: |
           pkill -f demo-1.0.jar || true
           nohup java -jar demo-1.0.jar > app.log 2>&1 &
