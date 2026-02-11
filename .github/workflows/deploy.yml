@@ -1,46 +1,43 @@
-name: CI-CD Java Deployment to EC2
+name: Java JAR CI-CD
 
 on:
   push:
     branches:
-      - main
-      - master  
+      - master
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Set up Java 17
+    - name: Setup Java
       uses: actions/setup-java@v3
       with:
+        distribution: temurin
         java-version: '17'
-        distribution: 'temurin'
 
-    - name: Build application using Maven
+    - name: Build JAR
       run: mvn clean package -DskipTests
 
-    - name: Create SSH key file
-      run: |
-        echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-        chmod 600 key.pem
+    - name: Copy JAR to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "target/*.jar"
+        target: "/home/ubuntu/"
 
-    - name: Copy JAR file to EC2
-      run: |
-        scp -o StrictHostKeyChecking=no -i key.pem \
-        target/*.jar \
-        ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/app.jar
+    - name: Run app on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          pkill -f demo-1.0.jar || true
+          nohup java -jar demo-1.0.jar > app.log 2>&1 &
 
-    - name: Stop existing Java application
-      run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem \
-        ubuntu@${{ secrets.EC2_HOST }} "pkill -f app.jar || true"
-
-    - name: Start new Java application
-      run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem \
-        ubuntu@${{ secrets.EC2_HOST }} \
-        "nohup java -jar /home/ubuntu/app.jar > app.log 2>&1 &"
