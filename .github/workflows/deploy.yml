@@ -44,4 +44,3 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i key.pem \
         ubuntu@${{ secrets.EC2_HOST }} \
         "nohup java -jar /home/ubuntu/app.jar > app.log 2>&1 &"
-
