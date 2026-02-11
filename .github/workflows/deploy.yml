@@ -2,7 +2,7 @@ name: Java CI CD EC2
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   deploy:
@@ -27,7 +27,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "."
+          source: "target/*.jar"
           target: "/home/ubuntu/app"
 
       - name: Restart Java App on EC2
@@ -36,7 +36,15 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: false
           script: |
-            pkill -f java || true
-            nohup java -jar /home/ubuntu/app/*.jar > app.log 2>&1 &
+            mkdir -p /home/ubuntu/app
+            cd /home/ubuntu/app
+
+            echo "Stopping old app..."
+            pgrep -f 'java -jar' && pkill -f 'java -jar' || echo "No app running"
+
+            echo "Starting new app..."
+            nohup java -jar *.jar > app.log 2>&1 &
+
+            sleep 5
+            pgrep -f 'java -jar' && echo "✅ App started" || (echo "❌ App failed"; exit 1)
