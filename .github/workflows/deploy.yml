@@ -27,7 +27,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "target/*.jar"
+          source: "."
           target: "/home/ubuntu/app"
 
       - name: Restart Java App on EC2
