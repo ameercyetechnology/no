@@ -1,3 +1,4 @@
+
 name: Java CI CD EC2
 
 on:
@@ -37,14 +38,23 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set +e
             mkdir -p /home/ubuntu/app
             cd /home/ubuntu/app
 
             echo "Stopping old app..."
-            pgrep -f 'java -jar' && pkill -f 'java -jar' || echo "No app running"
+            PID=$(pgrep -f "java -jar" | head -n 1)
+
+            if [ -n "$PID" ]; then
+              echo "Killing PID $PID"
+              kill -9 $PID
+              sleep 2
+            else
+              echo "No app running"
+            fi
 
             echo "Starting new app..."
             nohup java -jar *.jar > app.log 2>&1 &
 
             sleep 5
-            pgrep -f 'java -jar' && echo "✅ App started" || (echo "❌ App failed"; exit 1)
+            pgrep -f "java -jar" >/dev/null && echo "✅ App started" || (echo "❌ App failed"; exit 1)
